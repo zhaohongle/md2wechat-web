@@ -48,21 +48,26 @@ export async function POST(request: NextRequest) {
     // 初始化微信客户端
     const wechatClient = new WechatClient(appid, secret);
 
-    // 上传封面图（如果有）
+    // 上传封面图（必须有封面图）
     let thumbMediaId: string | undefined;
-    if (coverImagePath) {
-      try {
-        thumbMediaId = await wechatClient.uploadPermanentImage(coverImagePath);
-      } catch (error: any) {
-        return NextResponse.json({
-          success: false,
-          error: {
-            message: '封面图上传失败',
-            hint: error.hint,
-            details: error.message,
-          },
-        }, { status: 500 });
-      }
+    let coverPath = coverImagePath;
+    
+    // 如果没有封面图，使用默认封面
+    if (!coverPath) {
+      coverPath = path.join(process.cwd(), 'public', 'default-cover', 'default.jpg');
+    }
+
+    try {
+      thumbMediaId = await wechatClient.uploadPermanentImage(coverPath);
+    } catch (error: any) {
+      return NextResponse.json({
+        success: false,
+        error: {
+          message: '封面图上传失败',
+          hint: error.hint,
+          details: error.message,
+        },
+      }, { status: 500 });
     }
 
     // 自动生成摘要（如果没有）
@@ -93,15 +98,10 @@ export async function POST(request: NextRequest) {
       digest: finalDigest,
       content: html,
       content_source_url: '',
-      thumb_media_id: thumbMediaId || '',
+      thumb_media_id: thumbMediaId,
       need_open_comment: 0,
       only_fans_can_comment: 0,
     };
-
-    // 如果没有封面图，移除 thumb_media_id 字段
-    if (!thumbMediaId) {
-      delete (article as any).thumb_media_id;
-    }
 
     try {
       const mediaId = await wechatClient.createDraft(article);
