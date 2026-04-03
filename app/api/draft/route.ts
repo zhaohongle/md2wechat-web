@@ -5,6 +5,9 @@ import WechatClient from '@/lib/core/WechatClient';
 import * as fs from 'fs';
 import * as path from 'path';
 
+// 强制使用 Node.js Runtime
+export const runtime = 'nodejs';
+
 export async function POST(request: NextRequest) {
   try {
     const { markdown, theme = 'default', appid, secret, coverImagePath } = await request.json();
@@ -62,11 +65,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 自动生成摘要（如果没有）
+    let digest = metadata.digest || '';
+    if (!digest) {
+      // 从正文提取前 120 字符作为摘要
+      const plainText = content
+        .replace(/!\[.*?\]\(.*?\)/g, '') // 移除图片
+        .replace(/\[.*?\]\(.*?\)/g, '') // 移除链接
+        .replace(/```[\s\S]*?```/g, '') // 移除代码块
+        .replace(/`.*?`/g, '') // 移除行内代码
+        .replace(/#{1,6}\s/g, '') // 移除标题标记
+        .replace(/[*_~]/g, '') // 移除粗体斜体标记
+        .replace(/>\s/g, '') // 移除引用标记
+        .replace(/[-*+]\s/g, '') // 移除列表标记
+        .trim();
+      digest = plainText.substring(0, 120);
+    }
+
     // 创建草稿
     const article = {
       title: metadata.title,
-      author: metadata.author || '未知作者',
-      digest: metadata.digest || '',
+      author: metadata.author || '作者',
+      digest: digest,
       content: html,
       content_source_url: '',
       thumb_media_id: thumbMediaId || '',

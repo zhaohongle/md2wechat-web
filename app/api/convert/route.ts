@@ -4,6 +4,9 @@ import { HtmlRenderer } from '@/lib/core/HtmlRenderer';
 import * as fs from 'fs';
 import * as path from 'path';
 
+// 强制使用 Node.js Runtime
+export const runtime = 'nodejs';
+
 export async function POST(request: NextRequest) {
   try {
     const { markdown, theme = 'default' } = await request.json();
