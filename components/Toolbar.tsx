@@ -1,19 +1,120 @@
 'use client';
 
-import { Settings, Send } from 'lucide-react';
+import { useState } from 'react';
+import { Settings, Send, Upload } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface ToolbarProps {
+  markdown: string;
   theme: string;
   onThemeChange: (theme: string) => void;
   onConfigClick: () => void;
 }
 
-export default function Toolbar({ theme, onThemeChange, onConfigClick }: ToolbarProps) {
+export default function Toolbar({ markdown, theme, onThemeChange, onConfigClick }: ToolbarProps) {
+  const [loading, setLoading] = useState(false);
+  const [coverImage, setCoverImage] = useState<string | null>(null);
+
   const themes = [
     { id: 'default', name: '默认' },
     { id: 'bytedance', name: '字节' },
     { id: 'chinese', name: '中文' },
   ];
+
+  // 上传封面图
+  const handleUploadCover = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 验证文件类型
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('仅支持 JPG / PNG / GIF 格式');
+      return;
+    }
+
+    // 验证文件大小
+    const maxSize = 2 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error(`文件过大: ${(file.size / 1024 / 1024).toFixed(2)} MB（最大 2 MB）`);
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      toast.loading('上传封面图...');
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setCoverImage(data.data.path);
+        toast.success('封面图上传成功');
+      } else {
+        toast.error(data.error?.message || '上传失败');
+      }
+    } catch (error) {
+      toast.error('上传失败，请重试');
+    }
+  };
+
+  // 创建草稿
+  const handleCreateDraft = async () => {
+    if (!markdown.trim()) {
+      toast.error('Markdown 内容不能为空');
+      return;
+    }
+
+    // 从 localStorage 获取配置
+    const appid = localStorage.getItem('wechat_appid');
+    const secret = localStorage.getItem('wechat_secret');
+
+    if (!appid || !secret) {
+      toast.error('请先配置微信公众号 AppID 和 AppSecret');
+      onConfigClick();
+      return;
+    }
+
+    setLoading(true);
+    const toastId = toast.loading('正在创建草稿...');
+
+    try {
+      const response = await fetch('/api/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          markdown,
+          theme,
+          appid,
+          secret,
+          coverImagePath: coverImage,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success(`草稿创建成功！\n标题: ${data.data.title}\nmedia_id: ${data.data.media_id}`, {
+          id: toastId,
+          duration: 5000,
+        });
+      } else {
+        const errorMsg = data.error?.hint 
+          ? `${data.error.message}\n提示: ${data.error.hint}`
+          : data.error?.message || '创建失败';
+        toast.error(errorMsg, { id: toastId });
+      }
+    } catch (error) {
+      toast.error('创建失败，请检查网络连接', { id: toastId });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="h-14 border-b border-gray-200 flex items-center justify-between px-6 bg-white">
@@ -39,6 +140,20 @@ export default function Toolbar({ theme, onThemeChange, onConfigClick }: Toolbar
           </select>
         </div>
 
+        {/* 上传封面图 */}
+        <label className="cursor-pointer p-2 hover:bg-gray-100 rounded-md transition-colors" title="上传封面图">
+          <Upload className="w-5 h-5 text-gray-600" />
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/gif"
+            onChange={handleUploadCover}
+            className="hidden"
+          />
+        </label>
+        {coverImage && (
+          <span className="text-xs text-green-600">✓ 封面已上传</span>
+        )}
+
         {/* 配置按钮 */}
         <button
           onClick={onConfigClick}
@@ -50,11 +165,13 @@ export default function Toolbar({ theme, onThemeChange, onConfigClick }: Toolbar
 
         {/* 创建草稿按钮 */}
         <button
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2"
+          onClick={handleCreateDraft}
+          disabled={loading}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           title="创建草稿"
         >
           <Send className="w-4 h-4" />
-          创建草稿
+          {loading ? '创建中...' : '创建草稿'}
         </button>
       </div>
     </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Toaster } from 'sonner';
 import Editor from '@/components/Editor';
 import Preview from '@/components/Preview';
 import Toolbar from '@/components/Toolbar';
@@ -23,13 +24,15 @@ digest: 这是摘要，如果不填会自动生成
 - ✅ 3 种主题切换
 - ✅ 一键创建草稿
 - ✅ 图片自动上传
+- ✅ 封面图上传
 
 ## 使用方法
 
 1. 在左侧编辑 Markdown
 2. 右侧实时预览效果
 3. 选择主题
-4. 点击"创建草稿"
+4. 上传封面图（可选）
+5. 点击"创建草稿"
 
 ---
 
@@ -40,21 +43,26 @@ digest: 这是摘要，如果不填会自动生成
   const [showConfig, setShowConfig] = useState(false);
 
   return (
-    <main className="h-screen flex flex-col">
-      <Toolbar
-        theme={theme}
-        onThemeChange={setTheme}
-        onConfigClick={() => setShowConfig(true)}
-      />
+    <>
+      <Toaster position="top-center" richColors />
       
-      <div className="flex-1 flex overflow-hidden">
-        <Editor value={markdown} onChange={setMarkdown} />
-        <Preview markdown={markdown} theme={theme} />
-      </div>
+      <main className="h-screen flex flex-col">
+        <Toolbar
+          markdown={markdown}
+          theme={theme}
+          onThemeChange={setTheme}
+          onConfigClick={() => setShowConfig(true)}
+        />
+        
+        <div className="flex-1 flex overflow-hidden">
+          <Editor value={markdown} onChange={setMarkdown} />
+          <Preview markdown={markdown} theme={theme} />
+        </div>
 
-      {showConfig && (
-        <ConfigModal onClose={() => setShowConfig(false)} />
-      )}
-    </main>
+        {showConfig && (
+          <ConfigModal onClose={() => setShowConfig(false)} />
+        )}
+      </main>
+    </>
   );
 }
