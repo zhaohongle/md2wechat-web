@@ -6,6 +6,7 @@ import Editor from '@/components/Editor';
 import Preview from '@/components/Preview';
 import Toolbar from '@/components/Toolbar';
 import ConfigModal from '@/components/ConfigModal';
+import TemplateModal from '@/components/TemplateModal';
 
 export default function Home() {
   const [markdown, setMarkdown] = useState(`---
@@ -41,6 +42,7 @@ digest: 这是摘要，如果不填会自动生成
 
   const [theme, setTheme] = useState('default');
   const [showConfig, setShowConfig] = useState(false);
+  const [showTemplate, setShowTemplate] = useState(false);
 
   return (
     <>
@@ -52,6 +54,8 @@ digest: 这是摘要，如果不填会自动生成
           theme={theme}
           onThemeChange={setTheme}
           onConfigClick={() => setShowConfig(true)}
+          onMarkdownChange={setMarkdown}
+          onTemplateClick={() => setShowTemplate(true)}
         />
         
         <div className="flex-1 flex overflow-hidden">
@@ -61,6 +65,13 @@ digest: 这是摘要，如果不填会自动生成
 
         {showConfig && (
           <ConfigModal onClose={() => setShowConfig(false)} />
+        )}
+
+        {showTemplate && (
+          <TemplateModal
+            onClose={() => setShowTemplate(false)}
+            onSelect={setMarkdown}
+          />
         )}
       </main>
     </>
