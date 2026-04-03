@@ -1,0 +1,22 @@
+{
+  "name": "chinese",
+  "description": "中文传统风格，温润典雅",
+  "styles": {
+    "body": "font-family: 'Songti SC', 'STSong', 'SimSun', serif; font-size: 17px; line-height: 2; color: #2c3e50; padding: 24px; background: #fefaf6;",
+    "h1": "font-size: 30px; font-weight: 700; color: #8b4513; margin: 35px 0 25px; text-align: center; letter-spacing: 2px; border-bottom: 2px solid #d4a574;",
+    "h2": "font-size: 25px; font-weight: 600; color: #8b4513; margin: 30px 0 20px; letter-spacing: 1px;",
+    "h3": "font-size: 21px; font-weight: 600; color: #a0522d; margin: 25px 0 15px; letter-spacing: 1px;",
+    "p": "margin: 20px 0; line-height: 2.2; color: #3c3c3c; text-align: justify; text-indent: 2em;",
+    "blockquote": "margin: 25px 0; padding: 20px 28px; background: #f9f3ec; border-left: 4px solid #d4a574; color: #6b5944; font-style: normal;",
+    "code": "font-family: 'Courier New', Courier, monospace; background: #f9f3ec; padding: 3px 8px; border-radius: 3px; color: #c7254e; font-size: 15px;",
+    "pre": "background: #3c3c3c; color: #f5f2f0; padding: 18px; border-radius: 6px; overflow-x: auto; margin: 25px 0; font-size: 15px;",
+    "a": "color: #8b4513; text-decoration: none; border-bottom: 1px dashed #d4a574;",
+    "img": "max-width: 100%; height: auto; display: block; margin: 28px auto; border-radius: 6px; box-shadow: 0 4px 12px rgba(139, 69, 19, 0.15);",
+    "ul": "margin: 20px 0; padding-left: 35px;",
+    "ol": "margin: 20px 0; padding-left: 35px;",
+    "li": "margin: 12px 0; line-height: 2; color: #3c3c3c;",
+    "table": "width: 100%; border-collapse: collapse; margin: 25px 0; border: 1px solid #d4a574;",
+    "th": "background: #f9f3ec; padding: 15px; border: 1px solid #d4a574; font-weight: 600; text-align: center; color: #8b4513;",
+    "td": "padding: 15px; border: 1px solid #d4a574; text-align: center; color: #3c3c3c;"
+  }
+}
