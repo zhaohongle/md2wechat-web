@@ -82,17 +82,26 @@ export async function POST(request: NextRequest) {
       digest = plainText.substring(0, 120);
     }
 
-    // 创建草稿
+    // 创建草稿（字段长度限制）
+    const author = (metadata.author || '作者').substring(0, 16); // 微信限制 16 字符
+    const title = metadata.title.substring(0, 32); // 微信限制 32 字符
+    const finalDigest = digest.substring(0, 128); // 微信限制 128 字符
+
     const article = {
-      title: metadata.title,
-      author: metadata.author || '作者',
-      digest: digest,
+      title: title,
+      author: author,
+      digest: finalDigest,
       content: html,
       content_source_url: '',
       thumb_media_id: thumbMediaId || '',
       need_open_comment: 0,
       only_fans_can_comment: 0,
     };
+
+    // 如果没有封面图，移除 thumb_media_id 字段
+    if (!thumbMediaId) {
+      delete (article as any).thumb_media_id;
+    }
 
     try {
       const mediaId = await wechatClient.createDraft(article);
