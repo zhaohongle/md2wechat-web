@@ -16,8 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 解析 Markdown
-    const parser = new MarkdownParser();
-    const { content, metadata } = parser.parse(markdown);
+    const { content, metadata } = MarkdownParser.parse(markdown);
 
     // 加载主题
     const themePath = path.join(process.cwd(), 'lib', 'themes', `${theme}.json`);
