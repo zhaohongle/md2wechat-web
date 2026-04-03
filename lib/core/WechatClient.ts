@@ -5,7 +5,7 @@
 
 import axios, { AxiosInstance } from 'axios';
 import * as fs from 'fs';
-import FormData = require('form-data');
+import FormData from 'form-data';
 import WechatErrorHandler from './WechatErrorHandler';
 
 export interface AccessTokenResponse {
