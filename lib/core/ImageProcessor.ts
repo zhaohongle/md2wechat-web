@@ -7,7 +7,7 @@ import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import WechatClient from '../wechat/WechatClient';
+import WechatClient from './WechatClient';
 
 export interface ImageInfo {
   originalUrl: string;
