@@ -18,5 +18,6 @@
     "table": "width: 100%; border-collapse: collapse; margin: 20px 0;",
     "th": "background: #f0f0f0; padding: 12px; border: 1px solid #ddd; font-weight: 600; text-align: left;",
     "td": "padding: 12px; border: 1px solid #ddd; text-align: left;"
-  }
+  },
+  "displayName": "默认主题"
 }

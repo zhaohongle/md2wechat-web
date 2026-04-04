@@ -1,79 +1,144 @@
 'use client';
 
 import { useState } from 'react';
-import { Toaster } from 'sonner';
-import Editor from '@/components/Editor';
-import Preview from '@/components/Preview';
-import Toolbar from '@/components/Toolbar';
-import ConfigModal from '@/components/ConfigModal';
-import TemplateModal from '@/components/TemplateModal';
+import { useStore } from '@/lib/useStore';
+import SessionSidebar from '@/components/SessionSidebar';
+import MarkdownEditor from '@/components/MarkdownEditor';
+import PreviewPanel from '@/components/PreviewPanel';
+import ThemePanel from '@/components/ThemePanel';
+import ApiConfigModal from '@/components/ApiConfigModal';
+import CreateDraftModal from '@/components/CreateDraftModal';
+import UploadImageModal from '@/components/UploadImageModal';
 
 export default function Home() {
-  const [markdown, setMarkdown] = useState(`---
-title: 我的第一篇微信文章
-author: 作者
-digest: 这是摘要，如果不填会自动生成
----
+  const store = useStore();
+  const [isDark, setIsDark] = useState(false);
+  const [showApiConfig, setShowApiConfig] = useState(false);
+  const [showCreateDraft, setShowCreateDraft] = useState(false);
+  const [showUploadImage, setShowUploadImage] = useState(false);
 
-# 欢迎使用 md2wechat-pro
+  function toggleDark() {
+    const next = !isDark;
+    setIsDark(next);
+    document.documentElement.setAttribute('data-theme', next ? 'dark' : 'light');
+  }
 
-> 用 Markdown 写公众号文章，一键转换为精美排版。
+  function insertImageUrl(url: string) {
+    store.setMarkdown(store.markdown + `\n![图片](${url})\n`);
+  }
 
-## 功能特性
-
-- ✅ 实时预览
-- ✅ 3 种主题切换
-- ✅ 一键创建草稿
-- ✅ 图片自动上传
-- ✅ 封面图上传
-
-## 使用方法
-
-1. 在左侧编辑 Markdown
-2. 右侧实时预览效果
-3. 选择主题
-4. 上传封面图（可选）
-5. 点击"创建草稿"
-
----
-
-**开始写作吧！** 🚀
-`);
-
-  const [theme, setTheme] = useState('default');
-  const [showConfig, setShowConfig] = useState(false);
-  const [showTemplate, setShowTemplate] = useState(false);
+  const headerBtn: React.CSSProperties = {
+    padding: '6px 14px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
+    background: 'var(--bg-secondary)', cursor: 'pointer', fontSize: 13,
+    color: 'var(--text-primary)', transition: 'all 150ms', whiteSpace: 'nowrap',
+  };
 
   return (
-    <>
-      <Toaster position="top-center" richColors />
-      
-      <main className="h-screen flex flex-col">
-        <Toolbar
-          markdown={markdown}
-          theme={theme}
-          onThemeChange={setTheme}
-          onConfigClick={() => setShowConfig(true)}
-          onMarkdownChange={setMarkdown}
-          onTemplateClick={() => setShowTemplate(true)}
-        />
-        
-        <div className="flex-1 flex overflow-hidden">
-          <Editor value={markdown} onChange={setMarkdown} />
-          <Preview markdown={markdown} theme={theme} />
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)' }}>
+
+      {/* ─── Header ─── */}
+      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', height: 52, minHeight: 52, background: 'var(--bg-main)', borderBottom: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)', zIndex: 100, flexShrink: 0 }}>
+        <span style={{ fontSize: 16, fontWeight: 700 }}>✍️ MD2WeChat Pro</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button style={headerBtn} onClick={() => setShowApiConfig(true)}>⚙️ API 配置</button>
+          <button
+            style={{ ...headerBtn, background: store.markdown.trim() ? 'var(--primary)' : 'var(--bg-secondary)', color: store.markdown.trim() ? '#fff' : 'var(--text-secondary)', borderColor: store.markdown.trim() ? 'var(--primary)' : 'var(--border)', opacity: store.markdown.trim() ? 1 : .5 }}
+            onClick={() => store.markdown.trim() && setShowCreateDraft(true)}
+            disabled={!store.markdown.trim()}
+          >
+            📤 创建草稿
+          </button>
+          <button style={{ ...headerBtn, padding: '6px 10px' }} onClick={toggleDark} title={isDark ? '切换亮色' : '切换暗色'}>
+            {isDark ? '☀️' : '🌙'}
+          </button>
         </div>
+      </header>
 
-        {showConfig && (
-          <ConfigModal onClose={() => setShowConfig(false)} />
-        )}
+      {/* ─── Body ─── */}
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        <SessionSidebar
+          sessions={store.sessions}
+          activeId={store.activeId}
+          onSwitch={store.switchSession}
+          onCreate={store.createSession}
+          onRename={store.renameSession}
+          onDelete={store.deleteSession}
+          onOpenSettings={() => setShowApiConfig(true)}
+        />
+        <MarkdownEditor
+          value={store.markdown}
+          onChange={store.setMarkdown}
+          wordCount={store.wordCount}
+          lastSaved={store.lastSaved}
+          onUploadImage={() => setShowUploadImage(true)}
+          isDark={isDark}
+        />
+        <PreviewPanel
+          html={store.previewHtml}
+          isConverting={store.isConverting}
+          sessionTitle={store.activeSession?.title || '文章'}
+          onRefresh={store.convertMarkdown}
+          onToast={store.showToast}
+        />
+        <ThemePanel
+          isOpen={store.isThemePanelOpen}
+          onToggle={() => store.setIsThemePanelOpen(!store.isThemePanelOpen)}
+          themes={store.availableThemes}
+          currentTheme={store.currentTheme}
+          customStyles={store.customStyles}
+          onSetTheme={store.setTheme}
+          onUpdateStyle={store.updateCustomStyle}
+          onReset={store.resetCustomStyles}
+        />
+      </div>
 
-        {showTemplate && (
-          <TemplateModal
-            onClose={() => setShowTemplate(false)}
-            onSelect={setMarkdown}
-          />
-        )}
-      </main>
-    </>
+      {/* ─── Toast ─── */}
+      {store.toast && (
+        <div style={{
+          position: 'fixed', top: 64, left: '50%', transform: 'translateX(-50%)',
+          padding: '10px 20px', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500,
+          zIndex: 9999, boxShadow: 'var(--shadow-md)', whiteSpace: 'nowrap', pointerEvents: 'none',
+          background: store.toast.type === 'success' ? '#38a169' : store.toast.type === 'error' ? '#e53e3e' : '#3182ce',
+          color: '#fff',
+          animation: 'toastIn .25s cubic-bezier(.34,1.56,.64,1)',
+        }}>
+          {store.toast.message}
+        </div>
+      )}
+
+      {/* ─── Modals ─── */}
+      {showApiConfig && (
+        <ApiConfigModal
+          config={store.wechatConfig}
+          onSave={store.saveWechatConfig}
+          onClose={() => setShowApiConfig(false)}
+        />
+      )}
+      {showCreateDraft && (
+        <CreateDraftModal
+          markdown={store.markdown}
+          isCreating={store.isCreatingDraft}
+          hasConfig={!!(store.wechatConfig.appid && store.wechatConfig.secret)}
+          onCreate={store.createDraft}
+          onClose={() => setShowCreateDraft(false)}
+        />
+      )}
+      {showUploadImage && (
+        <UploadImageModal
+          wechatAppid={store.wechatConfig.appid}
+          wechatSecret={store.wechatConfig.secret}
+          onInsert={insertImageUrl}
+          onClose={() => setShowUploadImage(false)}
+          onToast={store.showToast}
+        />
+      )}
+
+      <style>{`
+        @keyframes toastIn {
+          from { opacity:0; transform:translateX(-50%) translateY(-12px) scale(.95) }
+          to   { opacity:1; transform:translateX(-50%) translateY(0) scale(1) }
+        }
+      `}</style>
+    </div>
   );
 }

@@ -1,72 +1,63 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import axios from 'axios';
+import FormData from 'form-data';
+import WechatClient from '@/lib/core/WechatClient';
 
-// 强制使用 Node.js Runtime
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
+  let tmpPath: string | null = null;
   try {
-    const formData = await request.formData();
-    const file = formData.get('file') as File;
+    const body = await request.json();
+    const { imageBase64, mimeType = 'image/jpeg', filename = 'image.jpg', appid, secret, target = 'smms' } = body;
 
-    if (!file) {
-      return NextResponse.json({
-        success: false,
-        error: { message: '未找到上传文件' },
-      }, { status: 400 });
+    if (!imageBase64) {
+      return NextResponse.json({ success: false, error: { message: '图片数据不能为空' } }, { status: 400 });
     }
 
-    // 验证文件类型
-    const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
-    if (!validTypes.includes(file.type)) {
-      return NextResponse.json({
-        success: false,
-        error: { message: '仅支持 JPG / PNG / GIF 格式' },
-      }, { status: 400 });
+    const buffer = Buffer.from(imageBase64, 'base64');
+
+    if (buffer.length > 5 * 1024 * 1024) {
+      return NextResponse.json({ success: false, error: { message: '图片超过 5MB 限制' } }, { status: 400 });
     }
 
-    // 验证文件大小（2 MB）
-    const maxSize = 2 * 1024 * 1024;
-    if (file.size > maxSize) {
-      return NextResponse.json({
-        success: false,
-        error: { message: `文件过大: ${(file.size / 1024 / 1024).toFixed(2)} MB（最大 2 MB）` },
-      }, { status: 400 });
+    // 写临时文件
+    const extMap: Record<string, string> = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/gif': '.gif' };
+    const ext = extMap[mimeType] || '.jpg';
+    tmpPath = path.join(os.tmpdir(), `md2wechat-${Date.now()}${ext}`);
+    fs.writeFileSync(tmpPath, buffer);
+
+    if (target === 'wechat') {
+      if (!appid || !secret) {
+        return NextResponse.json({ success: false, error: { message: '请先配置微信 AppID 和 AppSecret' } }, { status: 400 });
+      }
+      const client = new WechatClient(appid, secret);
+      const url = await client.uploadImage(tmpPath);
+      return NextResponse.json({ success: true, data: { url, type: 'wechat' } });
     }
 
-    // 创建临时目录
-    const tmpDir = join(process.cwd(), 'tmp', 'uploads');
-    if (!existsSync(tmpDir)) {
-      await mkdir(tmpDir, { recursive: true });
-    }
+    // 默认 SM.MS
+    const form = new FormData();
+    form.append('smfile', buffer, { filename, contentType: mimeType });
 
-    // 生成文件名
-    const ext = file.name.split('.').pop();
-    const fileName = `cover-${Date.now()}.${ext}`;
-    const filePath = join(tmpDir, fileName);
-
-    // 保存文件
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    await writeFile(filePath, buffer);
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        path: filePath,
-        filename: fileName,
-        size: file.size,
-        type: file.type,
-      },
+    const resp = await axios.post('https://sm.ms/api/v2/upload', form, {
+      headers: { ...form.getHeaders(), Authorization: process.env.SMMS_TOKEN || '' },
+      timeout: 30000,
     });
+
+    if (resp.data.success) {
+      return NextResponse.json({ success: true, data: { url: resp.data.data.url } });
+    } else if (resp.data.code === 'image_repeated') {
+      return NextResponse.json({ success: true, data: { url: resp.data.images } });
+    } else {
+      throw new Error(resp.data.message || '上传失败');
+    }
   } catch (error: any) {
-    return NextResponse.json({
-      success: false,
-      error: {
-        message: error.message || '文件上传失败',
-      },
-    }, { status: 500 });
+    return NextResponse.json({ success: false, error: { message: error.message || '上传失败' } }, { status: 500 });
+  } finally {
+    if (tmpPath && fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
   }
 }

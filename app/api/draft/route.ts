@@ -10,7 +10,7 @@ export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
-    const { markdown, theme = 'default', appid, secret, coverImagePath } = await request.json();
+    const { markdown, theme = 'default', appid, secret, coverImagePath, customStyles, title: reqTitle, author: reqAuthor, digest: reqDigest, thumbMediaId } = await request.json();
 
     // 验证必填参数
     if (!markdown) {
@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     const themeConfig = JSON.parse(fs.readFileSync(themePath, 'utf-8'));
+    if (customStyles) themeConfig.styles = { ...themeConfig.styles, ...customStyles };
 
     // 渲染 HTML
     const renderer = new HtmlRenderer(themeConfig);
@@ -48,26 +49,16 @@ export async function POST(request: NextRequest) {
     // 初始化微信客户端
     const wechatClient = new WechatClient(appid, secret);
 
-    // 上传封面图（必须有封面图）
-    let thumbMediaId: string | undefined;
-    let coverPath = coverImagePath;
-    
-    // 如果没有封面图，使用默认封面
-    if (!coverPath) {
-      coverPath = path.join(process.cwd(), 'public', 'default-cover', 'default.jpg');
-    }
-
-    try {
-      thumbMediaId = await wechatClient.uploadPermanentImage(coverPath);
-    } catch (error: any) {
-      return NextResponse.json({
-        success: false,
-        error: {
-          message: '封面图上传失败',
-          hint: error.hint,
-          details: error.message,
-        },
-      }, { status: 500 });
+    // 上传封面图（可选）
+    let resolvedThumbMediaId: string | undefined = thumbMediaId;
+    if (!resolvedThumbMediaId && coverImagePath) {
+      const coverPath = coverImagePath;
+      try {
+        resolvedThumbMediaId = await wechatClient.uploadPermanentImage(coverPath);
+      } catch (error: any) {
+        // 封面图上传失败时不阻断，继续创建草稿
+        console.warn('封面图上传失败:', error.message);
+      }
     }
 
     // 自动生成摘要（如果没有）
@@ -88,17 +79,17 @@ export async function POST(request: NextRequest) {
     }
 
     // 创建草稿（字段长度限制）
-    const author = (metadata.author || '作者').substring(0, 16); // 微信限制 16 字符
-    const title = metadata.title.substring(0, 32); // 微信限制 32 字符
-    const finalDigest = digest.substring(0, 128); // 微信限制 128 字符
+    const author = (reqAuthor || metadata.author || '').substring(0, 16);
+    const title = (reqTitle || metadata.title || '未命名文章').substring(0, 32);
+    const finalDigest = (reqDigest || digest).substring(0, 128);
 
     const article = {
-      title: title,
-      author: author,
+      title,
+      author,
       digest: finalDigest,
       content: html,
       content_source_url: '',
-      thumb_media_id: thumbMediaId,
+      thumb_media_id: resolvedThumbMediaId,
       need_open_comment: 0,
       only_fans_can_comment: 0,
     };

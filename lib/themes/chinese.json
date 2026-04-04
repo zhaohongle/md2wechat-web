@@ -18,5 +18,6 @@
     "table": "width: 100%; border-collapse: collapse; margin: 25px 0; border: 1px solid #d4a574;",
     "th": "background: #f9f3ec; padding: 15px; border: 1px solid #d4a574; font-weight: 600; text-align: center; color: #8b4513;",
     "td": "padding: 15px; border: 1px solid #d4a574; text-align: center; color: #3c3c3c;"
-  }
+  },
+  "displayName": "中文传统"
 }

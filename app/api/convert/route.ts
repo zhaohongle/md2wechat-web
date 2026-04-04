@@ -9,7 +9,7 @@ export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
-    const { markdown, theme = 'default' } = await request.json();
+    const { markdown, theme = 'default', customStyles } = await request.json();
 
     if (!markdown) {
       return NextResponse.json({
@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     const themeConfig = JSON.parse(fs.readFileSync(themePath, 'utf-8'));
+    if (customStyles) themeConfig.styles = { ...themeConfig.styles, ...customStyles };
 
     // 渲染 HTML
     const renderer = new HtmlRenderer(themeConfig);
